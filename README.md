@@ -1,3 +1,7 @@
+#This Repo is experimental 
+
+This repo should not be used unless you need access to omnisharp on Linux, as it currently does not have the option to use a bundled version of omnisharp on Linux and OSX. 
+
 # LSP-OmniSharp
 
 This is a helper package that automatically installs and updates
@@ -53,6 +57,8 @@ The server will automatically find the the solution file from the folder you hav
     "solution_file": "./testconsoleprj.sln"
 }
 ```
+
+Absolute paths and sublime variables such as $project or $folder are accepted. 
 
 Once the `YOURPROJECT.sublime-project` is set up and saved, the next time you open this project in sublime, OmniSharp will use the specified solution.
 
