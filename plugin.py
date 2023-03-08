@@ -12,7 +12,7 @@ from LSP.plugin.core.typing import Any, Optional, List, Mapping, Callable
 from LSP.plugin.core.views import range_to_region  # TODO: not public API :(
 import sublime
 
-VERSION = "1.38.2"
+VERSION = "1.39.4"
 URL = "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v{}/omnisharp-{}.zip"  # noqa: E501
 
 
@@ -75,7 +75,7 @@ class OmniSharp(AbstractPlugin):
 
     @classmethod
     def get_windows_command(cls) -> List[str]:
-        return [cls.binary_path(), "--languageserver"]
+        return [cls.binary_path(), "-lsp"]
 
     @classmethod
     def get_osx_command(cls) -> List[str]:
