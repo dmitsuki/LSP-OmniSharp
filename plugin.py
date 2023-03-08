@@ -8,11 +8,12 @@ from LSP.plugin import ClientConfig
 from LSP.plugin import register_plugin
 from LSP.plugin import unregister_plugin
 from LSP.plugin import WorkspaceFolder
+from LSP.plugin.core.protocol import Range
 from LSP.plugin.core.typing import Any, Optional, List, Mapping, Callable
 from LSP.plugin.core.views import range_to_region  # TODO: not public API :(
 import sublime
 
-VERSION = "1.39.4"
+VERSION = "1.38.2"
 URL = "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v{}/omnisharp-{}.zip"  # noqa: E501
 
 
@@ -66,6 +67,21 @@ class OmniSharp(AbstractPlugin):
             return os.path.join(cls.basedir(), "omnisharp", "OmniSharp.exe")
 
     @classmethod
+    def get_solution_arguments(cls) -> List[str]:
+        view = sublime.active_window().active_view()
+        project_file = view.window().project_file_name()
+
+        if project_file is not None:
+            data = view.window().project_data()
+            if 'solution_file' in data:
+                project_dir = os.path.dirname(project_file)
+                solution_file_name = data['solution_file']
+                solution_file_path = os.path.join(project_dir, solution_file_name)
+                return ["-s", os.path.abspath(solution_file_path)]
+
+        return []
+
+    @classmethod
     def get_command(cls) -> List[str]:
         settings = cls.get_settings()
         cmd = settings.get("command")
@@ -75,7 +91,7 @@ class OmniSharp(AbstractPlugin):
 
     @classmethod
     def get_windows_command(cls) -> List[str]:
-        return [cls.binary_path(), "-lsp"]
+        return [cls.binary_path(), "--languageserver"] + cls.get_solution_arguments()
 
     @classmethod
     def get_osx_command(cls) -> List[str]:
@@ -159,7 +175,8 @@ class OmniSharp(AbstractPlugin):
         for sv in sb.session_views:
             if not sv.view.is_valid():
                 continue
-            region = range_to_region(arguments[0]["range"], sv.view)
+            r = Range.from_lsp(arguments[0]["range"])
+            region = range_to_region(r, sv.view)
             args = {"point": region.a}
             sv.view.run_command("lsp_symbol_references", args)
             done_callback()
