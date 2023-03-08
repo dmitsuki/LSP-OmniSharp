@@ -13,7 +13,7 @@ from LSP.plugin.core.typing import Any, Optional, List, Mapping, Callable
 from LSP.plugin.core.views import range_to_region  # TODO: not public API :(
 import sublime
 
-VERSION = "1.38.2"
+VERSION = "1.39.4"
 URL = "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v{}/omnisharp-{}.zip"  # noqa: E501
 
 
@@ -34,6 +34,9 @@ def _platform_str() -> str:
 
 
 class OmniSharp(AbstractPlugin):
+
+    solution_file_name = [""]; 
+
     @classmethod
     def name(cls) -> str:
         return cls.__name__
@@ -64,22 +67,11 @@ class OmniSharp(AbstractPlugin):
         if sublime.platform() == "windows":
             return os.path.join(cls.basedir(), "OmniSharp.exe")
         else:
-            return os.path.join(cls.basedir(), "omnisharp", "OmniSharp.exe")
+            return "omnisharp"
 
     @classmethod
     def get_solution_arguments(cls) -> List[str]:
-        view = sublime.active_window().active_view()
-        project_file = view.window().project_file_name()
-
-        if project_file is not None:
-            data = view.window().project_data()
-            if 'solution_file' in data:
-                project_dir = os.path.dirname(project_file)
-                solution_file_name = data['solution_file']
-                solution_file_path = os.path.join(project_dir, solution_file_name)
-                return ["-s", os.path.abspath(solution_file_path)]
-
-        return []
+        return OmniSharp.solution_file_name
 
     @classmethod
     def get_command(cls) -> List[str]:
@@ -91,28 +83,15 @@ class OmniSharp(AbstractPlugin):
 
     @classmethod
     def get_windows_command(cls) -> List[str]:
-        return [cls.binary_path(), "--languageserver"] + cls.get_solution_arguments()
+        return [cls.binary_path(), "-lsp"] + cls.get_solution_arguments()
 
     @classmethod
     def get_osx_command(cls) -> List[str]:
         return cls.get_linux_command()
 
     @classmethod
-    def mono_bin_path(cls) -> str:
-        return os.path.join(cls.basedir(), "bin", "mono")
-
-    @classmethod
-    def mono_config_path(cls) -> str:
-        return os.path.join(cls.basedir(), "etc", "config")
-
-    @classmethod
     def get_linux_command(cls) -> List[str]:
-        return [
-            cls.mono_bin_path(),
-            "--assembly-loader=strict",
-            "--config",
-            cls.mono_config_path()
-        ] + cls.get_windows_command()
+        return [cls.binary_path(), "-lsp"] + cls.get_solution_arguments()
 
     @classmethod
     def needs_update_or_installation(cls) -> bool:
@@ -135,7 +114,7 @@ class OmniSharp(AbstractPlugin):
                 f.extractall(cls.basedir())
             os.unlink(zipfile)
             if sublime.platform() != "windows":
-                os.chmod(cls.mono_bin_path(), 0o744)
+                os.chmod(cls.binary_path(), 0o744)
             with open(os.path.join(cls.basedir(), "VERSION"), "w") as fp:
                 fp.write(version)
         except Exception:
@@ -151,6 +130,15 @@ class OmniSharp(AbstractPlugin):
         configuration: ClientConfig
     ) -> Optional[str]:
         configuration.command = cls.get_command()
+        project_file = window.project_file_name(); 
+
+        if project_file is not None:
+            data = window.project_data(); 
+            if 'solution_file' in data:
+                file_name = data['solution_file']
+                new_file_name = sublime.expand_variables(file_name, window.extract_variables())
+                OmniSharp.solution_file_name = ["-s", new_file_name]
+        #OmniSharp.solution_file_name = ["-s", "/mnt/Data0/pCloud/Projects/EroSRPG/EroSrpg.sln"]; 
         return None
 
     # -- commands from the server that should be handled client-side ----------
